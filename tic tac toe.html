@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Tic Tac Toe</title>
+		
+		<style type="text/css">
+			body {
+				font: 14px "Century Gothic", Futura, sans-serif;
+				margin: 20px;
+			}
+
+			ol, ul {
+				padding-left: 30px;
+			}
+
+			.board-row:after {
+				clear: both;
+				content: "";
+				display: table;
+			}
+
+			.status {
+				margin-bottom: 10px;
+			}
+
+			.square {
+				background: #fff;
+				border: 1px solid #999;
+				float: left;
+				font-size: 24px;
+				font-weight: bold;
+				line-height: 34px;
+				height: 34px;
+				margin-right: -1px;
+				margin-top: -1px;
+				padding: 0;
+				text-align: center;
+				width: 34px;
+			}
+
+			.squareHigh {
+				background: #fff;
+				border: 3px solid #999;
+				float: left;
+				font-size: 24px;
+				font-weight: bold;
+				line-height: 34px;
+				height: 34px;
+				margin-right: -1px;
+				margin-top: -1px;
+				padding: 0;
+				text-align: center;
+				width: 34px;
+			}
+
+			.square:focus {
+				outline: none;
+			}
+
+			.kbd-navigation .square:focus {
+				background: #ddd;
+			}
+
+			.game {
+				display: flex;
+				flex-direction: row;
+			}
+
+			.game-info {
+				margin-left: 20px;
+			}
+		</style>
+		
+		<script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+		<script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+		<!-- Don't use this in production: -->
+		<script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+	</head>
+
+	<body>
+		<div id="errors" style="
+		background: #c00;
+		color: #fff;
+		display: none;
+		margin: -20px -20px 20px;
+		padding: 20px;
+		white-space: pre-wrap;
+		"></div>
+		
+		<div id="root"></div>
+		
+		<script>
+			window.addEventListener('mousedown', function(e) {
+				document.body.classList.add('mouse-navigation');
+				document.body.classList.remove('kbd-navigation');
+			});
+			
+			window.addEventListener('keydown', function(e) {
+				if (e.keyCode === 9) {
+					document.body.classList.add('kbd-navigation');
+					document.body.classList.remove('mouse-navigation');
+				} // end of if
+			});
+			
+			window.addEventListener('click', function(e) {
+				if (e.target.tagName === 'A' && e.target.getAttribute('href') === '#') {
+					e.preventDefault();
+				} // end of if
+			});
+			
+			window.onerror = function(message, source, line, col, error) {
+				var text = error ? error.stack || error : message + ' (at ' + source + ':' + line + ':' + col + ')';
+				errors.textContent += text + '\n';
+				errors.style.display = '';
+			};
+			
+			console.error = (function(old) {
+				return function error() {
+					errors.textContent += Array.prototype.slice.call(arguments).join(' ') + '\n';
+					errors.style.display = '';
+					old.apply(this, arguments);
+				} // end of error
+			})(console.error);
+		</script>
+		
+		<script type="text/babel">
+		function Square(props) {
+			return (
+				<button
+					className="square"
+						onClick={props.onClick}
+					>
+					{props.value}
+				</button>
+			); // end of return
+		} // end of square
+
+
+		function SquareHigh(props) {
+			return (
+				<button
+					className="squareHigh"
+					onClick={props.onClick}
+				>
+				{props.value}
+				</button>
+			); // end of return
+		} // end of square
+
+
+		class Board extends React.Component {
+			renderSquare(i) {
+				if(this.props.winning && this.props.winning.includes(i)) {
+					return (
+						<SquareHigh
+							value={this.props.squares[i]}
+							onClick={() => this.props.onClick(i)}
+						/>
+					);
+				} // end of if
+
+				else {
+					return (
+						<Square
+							value={this.props.squares[i]}
+							onClick={() => this.props.onClick(i)}
+						/>
+					);
+				} // end of else
+			} // end of render square
+
+			render() {
+				return (
+					<div>
+						<div className="status">{status}</div>
+						<div className="board-row">
+							{this.renderSquare(0)}
+							{this.renderSquare(1)}
+							{this.renderSquare(2)}
+						</div>
+						<div className="board-row">
+							{this.renderSquare(3)}
+							{this.renderSquare(4)}
+							{this.renderSquare(5)}
+						</div>
+						<div className="board-row">
+							{this.renderSquare(6)}
+							{this.renderSquare(7)}
+							{this.renderSquare(8)}
+						</div>
+					</div>
+				); // end of return
+			} // end of render
+		} // end of board class
+
+
+
+		class Game extends React.Component {
+			constructor(props) {
+				super(props);
+				this.state = {
+					history: [{
+						squares: Array(9).fill(null),
+						position: 9,
+					}],
+					stepNumber: 0,
+					xIsNext: true,
+				}; // end of state
+			} // end of constructor
+
+			handleClick(i) {
+				const history = this.state.history.slice(0, this.state.stepNumber + 1);
+				const current = history[history.length - 1];
+				const squares = current.squares.slice();
+				
+				// check invalid input i
+				if(calculateWinner(squares) || squares[i]) {
+					return;
+				} // end of if
+				
+				squares[i] = this.state.xIsNext ? 'X' : 'O';
+				
+				this.setState({
+					history: history.concat([
+						{
+							squares: squares,
+							position: i,
+						}
+					]),
+					stepNumber: history.length,
+					xIsNext: !this.state.xIsNext
+				}); // end of state
+			} // end of handle click
+			
+			// update current state
+			jumpTo(step) {
+				this.setState({
+					stepNumber: step,
+					xIsNext: (step % 2) === 0,
+				}); // end of state
+			} // end of jump to
+			
+			// display elements
+			render() {
+				const history = this.state.history;
+				const current = history[this.state.stepNumber];
+				const winner = calculateWinner(current.squares);
+				const line = calculateLine(current.squares);
+				
+				const moves = history.map((step, move) => {
+					// set desciption
+					const desc = move? 'Go to move #' + move +
+						' at position (' + (step.position % 3) + ',' + ((step.position - step.position % 3) / 3) + ')' :
+						'Go to game start';
+
+					// return button list
+					if(move == this.state.stepNumber) {
+						return (
+							<li key={move}>
+								<button onClick={() => this.jumpTo(move)}><b>{desc}</b></button>
+							</li>
+						); // end of return
+					} // end of if
+
+					else {
+						return (
+							<li key={move}>
+								<button onClick={() => this.jumpTo(move)}>{desc}</button>
+							</li>
+						); // end of return
+					} // end of else
+				});
+				
+				// reverse list of moves
+				const revMoves = moves.slice().reverse();
+				
+				// compute winner
+				let status;
+				if (winner) {
+					status = 'Winner: ' + winner;
+				} // end of if
+				
+				// compute next player
+				else {
+					status = (this.state.stepNumber != 9) ? 'Next player: ' + (this.state.xIsNext ? 'X' : 'O') : 'The game is a draw';
+				} // end of else
+				
+				// return objects to display
+				return (
+					<div className="game">
+						<div className="game-board">
+							<Board
+								squares={current.squares}
+								winning={line}
+								onClick={(i) => this.handleClick(i)}
+							/>
+							</div>
+							<div className="game-info">
+							<div>{status}</div>
+							<ol>{moves}</ol>
+						</div>
+					</div>
+				); // end of return
+			} // end of render
+		} // end of game class
+
+		// ========================================
+
+		ReactDOM.render(
+			<Game />,
+			document.getElementById('root')
+		);
+		
+		function calculateWinner(squares) {
+			const lines = [
+				[0, 1, 2],
+				[3, 4, 5],
+				[6, 7, 8],
+				[0, 3, 6],
+				[1, 4, 7],
+				[2, 5, 8],
+				[0, 4, 8],
+				[2, 4, 6],
+			];
+			
+			for (let i = 0; i < lines.length; i++) {
+				const [a, b, c] = lines[i];
+				if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+					// winner return
+					return squares[a];
+				} // end of if
+			} // end of for
+			
+			// default return
+			return null;
+		} // end of calculate winner
+		
+		function calculateLine(squares) {
+			const lines = [
+				[0, 1, 2],
+				[3, 4, 5],
+				[6, 7, 8],
+				[0, 3, 6],
+				[1, 4, 7],
+				[2, 5, 8],
+				[0, 4, 8],
+				[2, 4, 6],
+			];
+
+			for (let i = 0; i < lines.length; i++) {
+				const [a, b, c] = lines[i];
+				if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+					// winner return
+					return lines[i];
+				} // end of if
+			} // end of for
+			
+			// default return
+			return null;
+		} // end of calculate line
+		</script>
+	</body>
+</html>
